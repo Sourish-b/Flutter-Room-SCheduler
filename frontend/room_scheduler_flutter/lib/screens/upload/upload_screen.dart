@@ -479,7 +479,6 @@ class _DropdownField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.items,
-    this.enabled = true,
   });
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<String>(
