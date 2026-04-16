@@ -66,7 +66,7 @@ def init_db():
             FOREIGN KEY (original_entry) REFERENCES timetable_entries(id)
         );
         """)
-        # seed_data(c)  # Removed to delete dummy data
+         seed_data(c)  # Removed to delete dummy data
 
 def seed_data(c):
     # 1. Add your REAL Rooms here
