@@ -4,24 +4,23 @@ A full-stack web application for real-time college room availability tracking.
 
 ## Tech Stack
 - **Backend**: Python Flask + SQLite
-- **Frontend**: Vanilla HTML/CSS/JS (mobile-first, no build step needed)
+- **Frontend**: Flutter (Dart) for cross-platform mobile support
 
 ## Quick Start
 
-### 1. Install dependencies
+### 1. Backend Setup
+Navigate to the backend directory and run the Flask server:
 ```bash
+cd backend/room_scheduler
 pip install -r requirements.txt
-```
-
-### 2. Run the app
-```bash
 python app.py
-```
 
-### 3. Open in browser
 ```
 http://localhost:5000
 ```
+cd frontend/room_scheduler_flutter
+flutter pub get
+flutter run
 
 ## Features
 - 📊 **Live Dashboard** — Real-time room status (Free / Busy / Soon) based on current time
