@@ -14,7 +14,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _idCtrl = TextEditingController(text: 'AP001');
   List<Teacher> _teachers = [];
 
   @override
@@ -22,9 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     DataService.getTeachers().then((t) => setState(() => _teachers = t));
   }
-
-  @override
-  void dispose() { _idCtrl.dispose(); super.dispose(); }
 
   Future<void> _doLogin(String employeeId) async {
     final ok = await context.read<AuthProvider>().login(employeeId);
@@ -61,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700,
                           color: AppColors.purpleDark, letterSpacing: -0.5)),
                   const SizedBox(height: 4),
-                  const Text('Sign in to manage room bookings',
+                  const Text('Select your profile to manage room bookings',
                       style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
                 ],
               ),
@@ -72,18 +68,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('EMPLOYEE ID',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                          color: AppColors.textMuted, letterSpacing: 0.06)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _idCtrl,
-                    decoration: const InputDecoration(hintText: 'e.g. AP001'),
-                    textCapitalization: TextCapitalization.characters,
-                    onSubmitted: (_) => _doLogin(_idCtrl.text),
-                  ),
-                  const SizedBox(height: 12),
-
                   if (auth.error != null)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -98,18 +82,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ]),
                     ),
 
-                  ElevatedButton(
-                    onPressed: auth.isLoading ? null : () => _doLogin(_idCtrl.text),
-                    child: auth.isLoading
-                        ? const SizedBox(height: 20, width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Sign In'),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Quick select
+                  // Quick select label
                   const Center(
-                    child: Text('OR QUICK SELECT',
+                    child: Text('SELECT ACCOUNT',
                         style: TextStyle(fontSize: 12, color: AppColors.textHint,
                             letterSpacing: 0.06)),
                   ),
@@ -154,7 +129,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                               ],
                                             ),
                                           ),
-                                          const Icon(Icons.chevron_right, color: AppColors.textHint, size: 18),
+                                          if (auth.isLoading) 
+                                            const SizedBox(
+                                              height: 16, width: 16, 
+                                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.purple)
+                                            )
+                                          else 
+                                            const Icon(Icons.chevron_right, color: AppColors.textHint, size: 18),
                                         ],
                                       ),
                                     ),
