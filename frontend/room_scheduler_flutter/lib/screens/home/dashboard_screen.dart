@@ -54,20 +54,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
           slivers: [
             SliverAppBar(
               floating: true,
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
+              backgroundColor: AppColors.gray,
+              surfaceTintColor: AppColors.gray,
               title: Row(
                 children: [
                   Container(
-                    width: 28, height: 28,
+                    width: 30,
+                    height: 30,
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                        color: AppColors.purple, borderRadius: BorderRadius.circular(8)),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4936C2), Color(0xFF6C5CE7)],
+                      ),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
                     child: const Icon(Icons.grid_view_rounded, color: Colors.white, size: 16),
                   ),
                   const SizedBox(width: 8),
                   const Text('RoomScheduler',
                       style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.purpleDark)),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.purpleDark,
+                          letterSpacing: -0.2)),
                 ],
               ),
               actions: [
@@ -79,61 +88,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 else
                   Padding(
                     padding: const EdgeInsets.only(right: 16),
-                    child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                      ),
                       child: Text(dayName,
-                          style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                            fontWeight: FontWeight.w600,
+                          )),
                     ),
                   ),
               ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(1),
-                child: Container(height: 1, color: AppColors.border),
-              ),
             ),
 
             SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Hero card
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          colors: [Color(0xFF534AB7), Color(0xFF3C3489)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(provider.selectedDay,
-                            style: const TextStyle(fontSize: 13, color: Colors.white70)),
-                        const SizedBox(height: 4),
-                        Text(provider.slotLabel,
-                            style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: -0.5)),
-                        const SizedBox(height: 10),
-                        Text('Live room status · ${provider.allRooms.length} rooms tracked',
-                            style: const TextStyle(fontSize: 12, color: Colors.white60)),
-                      ],
-                    ),
+                  _HeroCard(
+                    day: provider.selectedDay,
+                    slotLabel: provider.slotLabel,
+                    roomsTracked: provider.allRooms.length,
                   ),
 
                   // Date/time controls
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppColors.border),
+                        boxShadow: _cardShadow(),
                       ),
                       child: Row(
                         children: [
@@ -160,11 +152,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(width: 10),
                           SizedBox(
                             height: 40,
-                            child: OutlinedButton(
+                            child: ElevatedButton(
                               onPressed: () => provider.useCurrentDateTime(),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.purple,
-                                side: const BorderSide(color: AppColors.border),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(68, 40),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                backgroundColor: AppColors.purple,
                               ),
                               child: const Text('Now'),
                             ),
@@ -181,14 +177,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         _StatCard(count: provider.freeCount, label: 'Free',
                             color: AppColors.green,
+                            icon: Icons.check_circle_outline_rounded,
+                            active: provider.filterStatus == 'free',
                             onTap: () => provider.setFilterStatus('free')),
                         const SizedBox(width: 10),
                         _StatCard(count: provider.busyCount, label: 'Busy',
                             color: AppColors.red,
+                            icon: Icons.block_rounded,
+                            active: provider.filterStatus == 'busy',
                             onTap: () => provider.setFilterStatus('busy')),
                         const SizedBox(width: 10),
                         _StatCard(count: provider.soonCount, label: 'Soon',
                             color: AppColors.amber,
+                            icon: Icons.schedule_rounded,
+                            active: provider.filterStatus == 'soon',
                             onTap: () => provider.setFilterStatus('soon')),
                       ],
                     ),
@@ -202,34 +204,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Row(
                       children: [
                         _FilterChip(label: 'All', active: provider.filterStatus == 'all',
+                            color: AppColors.purple,
                             onTap: () => provider.setFilterStatus('all')),
                         const SizedBox(width: 8),
                         _FilterChip(label: 'Free', active: provider.filterStatus == 'free',
+                            color: AppColors.green,
                             onTap: () => provider.setFilterStatus('free')),
                         const SizedBox(width: 8),
                         _FilterChip(label: 'Busy', active: provider.filterStatus == 'busy',
+                            color: AppColors.red,
                             onTap: () => provider.setFilterStatus('busy')),
                         const SizedBox(width: 8),
                         _FilterChip(label: 'Soon', active: provider.filterStatus == 'soon',
+                            color: AppColors.amber,
                             onTap: () => provider.setFilterStatus('soon')),
                         ...provider.buildings.map((b) => Padding(
                           padding: const EdgeInsets.only(left: 8),
                           child: _FilterChip(
                               label: b,
                               active: provider.filterBuilding == b,
+                              color: AppColors.purple,
                               onTap: () => provider.setFilterBuilding(b)),
                         )),
                       ],
                     ),
                   ),
 
-                  // Section title
                   const Padding(
-                    padding: EdgeInsets.only(left: 20, bottom: 8),
-                    child: Text('LIVE ROOM STATUS',
-                        style: TextStyle(
-                            fontSize: 11, fontWeight: FontWeight.w700,
-                            color: AppColors.textMuted, letterSpacing: 0.08)),
+                    padding: EdgeInsets.fromLTRB(20, 2, 20, 10),
+                    child: _RoomListHeader(),
                   ),
                 ],
               ),
@@ -255,58 +258,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
               )
             else
               SliverToBoxAdapter(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
-                  ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
-                    children: [
-                      // Table header
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF9F8FD),
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                    children: provider.rooms.map((room) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                          boxShadow: _cardShadow(),
                         ),
-                        child: const Row(
-                          children: [
-                            SizedBox(width: 44, child: Text('ROOM',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                                    color: AppColors.textHint, letterSpacing: 0.06))),
-                            SizedBox(width: 4),
-                            SizedBox(width: 70, child: Text('STATUS',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                                    color: AppColors.textHint, letterSpacing: 0.06))),
-                            SizedBox(width: 12),
-                            Expanded(child: Text('CLASS INFO',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                                    color: AppColors.textHint, letterSpacing: 0.06))),
-                          ],
-                        ),
-                      ),
-                      ...provider.rooms.asMap().entries.map((e) {
-                        return Column(
-                          children: [
-                            if (e.key > 0)
-                              const Divider(height: 1, color: Color(0xFFF3F0FB)),
-                            RoomCard(
-                              roomStatus: e.value,
-                              onTap: () => Navigator.push(context,
-                                MaterialPageRoute(
-                                  builder: (_) => RoomDetailScreen(room: e.value.room),
-                                )),
+                        child: RoomCard(
+                          roomStatus: room,
+                          onTap: () => Navigator.push(context,
+                            MaterialPageRoute(
+                              builder: (_) => RoomDetailScreen(room: room.room),
                             ),
-                          ],
-                        );
-                      }),
-                    ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            const SliverToBoxAdapter(child: SizedBox(height: 22)),
           ],
         ),
       ),
@@ -314,13 +291,168 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
+class _HeroCard extends StatelessWidget {
+  final String day;
+  final String slotLabel;
+  final int roomsTracked;
+
+  const _HeroCard({
+    required this.day,
+    required this.slotLabel,
+    required this.roomsTracked,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF3A2EA8), Color(0xFF6C5CE7), Color(0xFF8B7FF5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.purple.withOpacity(0.38),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.08),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 20,
+            bottom: -26,
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.06),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.20),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(day,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    )),
+              ),
+              const SizedBox(height: 8),
+              Text(slotLabel,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      height: 1.02,
+                      letterSpacing: -0.6)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.circle, color: Color(0xFF9DFFBC), size: 8),
+                  const SizedBox(width: 6),
+                  Text('Live room status · $roomsTracked rooms tracked',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.84),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoomListHeader extends StatelessWidget {
+  const _RoomListHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Text('LIVE ROOM STATUS',
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textMuted,
+                letterSpacing: 0.1)),
+        const Spacer(),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: const BoxDecoration(
+            color: Color(0xFF2ECC71),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 5),
+        const Text('Live',
+            style: TextStyle(
+              fontSize: 11,
+              color: AppColors.green,
+              fontWeight: FontWeight.w600,
+            )),
+      ],
+    );
+  }
+}
+
+List<BoxShadow> _cardShadow() => [
+  BoxShadow(
+      color: const Color(0xFF4936C2).withOpacity(0.05),
+      blurRadius: 12,
+      offset: const Offset(0, 4)),
+  BoxShadow(
+      color: Colors.black.withOpacity(0.03),
+      blurRadius: 4,
+      offset: const Offset(0, 1)),
+];
+
 class _StatCard extends StatelessWidget {
   final int count;
   final String label;
   final Color color;
+  final IconData icon;
+  final bool active;
   final VoidCallback onTap;
 
-  const _StatCard({required this.count, required this.label, required this.color, required this.onTap});
+  const _StatCard({
+    required this.count,
+    required this.label,
+    required this.color,
+    required this.icon,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -328,18 +460,41 @@ class _StatCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: _cardShadow(),
+            border: Border(
+              top: BorderSide(color: color, width: 3),
+              left: BorderSide(color: active ? color.withOpacity(0.35) : AppColors.border),
+              right: BorderSide(color: active ? color.withOpacity(0.35) : AppColors.border),
+              bottom: BorderSide(color: active ? color.withOpacity(0.35) : AppColors.border),
+            ),
           ),
           child: Column(
             children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const SizedBox(height: 8),
               Text('$count',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: color)),
+                  style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                      height: 1)),
               const SizedBox(height: 4),
-              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                      fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -366,17 +521,23 @@ class _LabeledDropdown extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMuted)),
+        Row(
+          children: [
+            const Icon(Icons.access_time_rounded, size: 12, color: AppColors.textMuted),
+            const SizedBox(width: 4),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted)),
+          ],
+        ),
         const SizedBox(height: 6),
         Container(
           height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFFF9F8FD),
+            color: const Color(0xFFF8F7FE),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppColors.border),
           ),
@@ -420,11 +581,17 @@ class _DatePickerField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMuted)),
+        Row(
+          children: [
+            const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textMuted),
+            const SizedBox(width: 4),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted)),
+          ],
+        ),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
@@ -442,7 +609,7 @@ class _DatePickerField extends StatelessWidget {
             height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9F8FD),
+              color: const Color(0xFFF8F7FE),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.border),
             ),
@@ -464,25 +631,42 @@ class _DatePickerField extends StatelessWidget {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool active;
+  final Color color;
   final VoidCallback onTap;
 
-  const _FilterChip({required this.label, required this.active, required this.onTap});
+  const _FilterChip({
+    required this.label,
+    required this.active,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: active ? AppColors.purple : Colors.white,
+          color: active ? color : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? AppColors.purple : AppColors.border),
+          border: Border.all(color: active ? color : AppColors.border),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.30),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
         child: Text(label,
             style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
                 color: active ? Colors.white : AppColors.textMuted)),
       ),
     );
