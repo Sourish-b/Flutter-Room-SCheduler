@@ -883,9 +883,13 @@ class DataService {
       }
     }
 
-    final json = await _postJson(_apiUri('api/teachers/login'), {'employee_id': employeeId});
-    if (json is Map<String, dynamic> && json['success'] == true) {
-      return Teacher.fromJson(json['teacher'] as Map<String, dynamic>);
+    try {
+      final json = await _postJson(_apiUri('api/teachers/login'), {'employee_id': employeeId});
+      if (json is Map<String, dynamic> && json['success'] == true) {
+        return Teacher.fromJson(json['teacher'] as Map<String, dynamic>);
+      }
+    } catch (_) {
+      // Ignore login failures (like 401 Not Found) and return null
     }
     return null;
   }
@@ -1053,11 +1057,18 @@ class DataService {
       return (success: true, message: 'Schedule reset successfully.');
     }
 
-    final body = await _postJson(_apiUri('api/timetable/reset'), {});
-    return (
-      success: body['success'] == true,
-      message: (body['message'] as String?) ?? 'Schedule reset',
-    );
+    try {
+      final body = await _postJson(_apiUri('api/timetable/reset'), {});
+      return (
+        success: body['success'] == true,
+        message: (body['message'] as String?) ?? 'Schedule reset',
+      );
+    } catch (e) {
+      return (
+        success: false,
+        message: 'Unable to reset schedule. Make sure backend is running on port 5000.',
+      );
+    }
   }
 
   static Future<({bool success, String message})> uploadTimetablePdf({

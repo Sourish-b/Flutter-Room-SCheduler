@@ -66,7 +66,11 @@ def init_db():
             FOREIGN KEY (original_entry) REFERENCES timetable_entries(id)
         );
         """)
-         seed_data(c)  # Removed to delete dummy data
+        
+        # Check if we need to seed
+        count = c.execute("SELECT COUNT(*) FROM teachers").fetchone()[0]
+        if count == 0:
+            seed_data(c)
 
 def seed_data(c):
     # 1. Add your REAL Rooms here
@@ -209,10 +213,26 @@ def room_schedule(room_number):
 # --- Teachers ---
 @app.route("/api/teachers/login", methods=["POST"])
 def teacher_login():
-    data = request.json
+    data = request.json or {}
+    raw_id = data.get("employee_id", "")
+    employee_id = str(raw_id).strip().upper()
+    if not employee_id:
+        return jsonify({"success": False, "message": "Employee ID is required"}), 400
+
+    normalized_code = re.sub(r"[^A-Z]", "", employee_id)
+
     with get_db() as c:
-        t = c.execute("SELECT * FROM teachers WHERE employee_id=?",
-                      (data.get("employee_id","").upper(),)).fetchone()
+        t = c.execute(
+            """
+            SELECT * FROM teachers
+            WHERE UPPER(employee_id)=?
+               OR UPPER(faculty_code)=?
+               OR UPPER(employee_id)=?
+               OR UPPER(faculty_code)=?
+            LIMIT 1
+            """,
+            (employee_id, employee_id, normalized_code, normalized_code),
+        ).fetchone()
     if t:
         return jsonify({"success": True, "teacher": dict(t)})
     return jsonify({"success": False, "message": "Employee ID not found"}), 401
@@ -246,12 +266,12 @@ def create_booking():
         if booking_conflict:
             return jsonify({"success": False, "message": "Room already booked at this time"}), 409
 
-        c.execute("""INSERT INTO bookings
+        cursor = c.execute("""INSERT INTO bookings
             (room_number,day,start_time,end_time,booked_by,faculty_code,purpose,booking_type)
             VALUES (?,?,?,?,?,?,?,?)""",
             (data["room_number"], day, data["start_time"], data["end_time"],
              data["booked_by"], data.get("faculty_code",""), data.get("purpose",""), data.get("booking_type","booking")))
-        booking_id = c.lastrowid
+        booking_id = cursor.lastrowid
 
     return jsonify({"success": True, "booking_id": booking_id, "message": "Room booked successfully!"})
 
@@ -461,6 +481,13 @@ def add_timetable_entry():
              data.get("subject"), data.get("faculty_code"), data.get("faculty_name"),
              data.get("section"), data.get("session","2025-26")))
     return jsonify({"success": True})
+
+@app.route("/api/timetable/reset", methods=["POST"])
+def reset_timetable():
+    with get_db() as c:
+        c.execute("DELETE FROM timetable_entries")
+        c.execute("DELETE FROM bookings")
+    return jsonify({"success": True, "message": "Schedule reset successfully."})
 
 if __name__ == "__main__":
     init_db()

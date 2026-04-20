@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:intl/intl.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/room_provider.dart';
 import '../../services/data_service.dart';
 import '../../theme.dart';
+import '../../main.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -61,6 +62,15 @@ class _UploadScreenState extends State<UploadScreen> {
     final idx = _times.indexOf(start);
     if (idx == -1 || idx + 1 >= _times.length) return _times.last;
     return _times[idx + 1];
+  }
+
+  void _logoutToDashboard() {
+    context.read<AuthProvider>().logout();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const MainShell(initialIndex: 0)),
+      (_) => false,
+    );
   }
 
   Future<void> _pickFile() async {
@@ -178,12 +188,16 @@ class _UploadScreenState extends State<UploadScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Upload Timetable'),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Center(child: Text('Admin',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted))),
+        actions: [
+          TextButton.icon(
+            onPressed: _logoutToDashboard,
+            icon: const Icon(Icons.logout_rounded, size: 18, color: AppColors.red),
+            label: const Text(
+              'Logout',
+              style: TextStyle(fontSize: 13, color: AppColors.red),
+            ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
@@ -474,12 +488,10 @@ class _DropdownField extends StatelessWidget {
   final String label;
   final ValueNotifier<String> value;
   final List<String> items;
-  final bool enabled;
   const _DropdownField({
     required this.label,
     required this.value,
     required this.items,
-    this.enabled = true,
   });
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<String>(
@@ -495,7 +507,7 @@ class _DropdownField extends StatelessWidget {
           initialValue: items.contains(val) ? val : items.first,
           decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
           items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, style: const TextStyle(fontSize: 13)))).toList(),
-          onChanged: enabled ? (v) { if (v != null) value.value = v; } : null,
+          onChanged: (v) { if (v != null) value.value = v; },
         ),
       ],
     ),

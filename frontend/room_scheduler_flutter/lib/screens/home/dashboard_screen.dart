@@ -288,7 +288,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       ...provider.rooms.asMap().entries.map((e) {
-                        final isLast = e.key == provider.rooms.length - 1;
                         return Column(
                           children: [
                             if (e.key > 0)

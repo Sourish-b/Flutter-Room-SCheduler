@@ -57,6 +57,7 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
       return;
     }
     final auth = context.read<AuthProvider>();
+    final isAdmin = auth.isAdminLoggedIn && auth.teacher == null;
     setState(() { _loading = true; _result = null; });
     final bookingDate = DateFormat('yyyy-MM-dd').format(_selectedDate.value);
     final dayStr = DateFormat('EEEE').format(_selectedDate.value);
@@ -66,8 +67,8 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
         day: dayStr,
         startTime: _startTime,
         endTime: _endTime,
-        bookedBy: auth.teacher!.name,
-        facultyCode: auth.teacher!.facultyCode,
+        bookedBy: isAdmin ? 'Administrator' : auth.teacher!.name,
+        facultyCode: isAdmin ? 'ADM' : auth.teacher!.facultyCode,
         purpose: _purposeCtrl.text.trim(),
         bookingType: _bookingType,
         bookingDate: bookingDate,
@@ -105,6 +106,9 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
   Widget build(BuildContext context) {
     final rooms = DataService.getRoomsList();
     final auth = context.watch<AuthProvider>();
+    final isAdmin = auth.isAdminLoggedIn && auth.teacher == null;
+    final displayName = isAdmin ? 'Administrator' : auth.teacher!.name;
+    final displayDept = isAdmin ? 'Administration' : auth.teacher!.department;
 
     return Scaffold(
       backgroundColor: AppColors.gray,
@@ -129,16 +133,16 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
               ),
               child: Row(
                 children: [
-                  AvatarWidget(name: auth.teacher!.name, size: 36),
+                  AvatarWidget(name: displayName, size: 36),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(auth.teacher!.name,
+                        Text(displayName,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600, color: AppColors.purpleDark)),
-                        Text(auth.teacher!.department,
+                        Text(displayDept,
                             style: const TextStyle(fontSize: 12, color: AppColors.purple)),
                       ],
                     ),

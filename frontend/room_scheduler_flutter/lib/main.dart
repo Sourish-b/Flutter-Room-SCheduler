@@ -51,7 +51,6 @@ class _MainShellState extends State<MainShell> {
 
   final _screens = const [
     DashboardScreen(),
-    UploadScreen(),
     _TeacherTab(),
   ];
 
@@ -78,11 +77,6 @@ class _MainShellState extends State<MainShell> {
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.upload_file_outlined),
-            activeIcon: Icon(Icons.upload_file_rounded),
-            label: 'Upload',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.person_outline_rounded),
             activeIcon: Icon(Icons.person_rounded),
             label: 'Teacher',
@@ -93,13 +87,26 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-/// Smart teacher tab: shows login or portal based on auth state
 class _TeacherTab extends StatelessWidget {
   const _TeacherTab();
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    return auth.isLoggedIn ? const PortalScreen() : const LoginScreen();
+    return (auth.isLoggedIn || auth.isAdminLoggedIn)
+        ? const PortalScreen()
+        : const LoginScreen();
+  }
+}
+
+class _UploadTab extends StatelessWidget {
+  const _UploadTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    return (auth.isLoggedIn || auth.isAdminLoggedIn)
+        ? const UploadScreen()
+        : const LoginScreen();
   }
 }

@@ -6,7 +6,7 @@ import '../../providers/room_provider.dart';
 import '../../theme.dart';
 import '../../widgets/avatar_widget.dart';
 import 'book_room_screen.dart';
-import 'login_screen.dart';
+import '../upload/upload_screen.dart';
 import '../../main.dart';
 
 class PortalScreen extends StatefulWidget {
@@ -22,7 +22,9 @@ class _PortalScreenState extends State<PortalScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
-      if (auth.isLoggedIn) {
+      if (auth.isAdminLoggedIn) {
+        context.read<RoomProvider>().loadBookings();
+      } else if (auth.isLoggedIn && auth.teacher != null) {
         context.read<RoomProvider>().loadBookings(facultyCode: auth.teacher!.facultyCode);
       }
     });
@@ -44,7 +46,7 @@ class _PortalScreenState extends State<PortalScreen> {
     );
     if (confirm == true && mounted) {
       context.read<AuthProvider>().logout();
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainShell(initialIndex: 2)));
     }
   }
 
@@ -52,7 +54,13 @@ class _PortalScreenState extends State<PortalScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final provider = context.watch<RoomProvider>();
-    final teacher = auth.teacher!;
+    final isAdmin = auth.isAdminLoggedIn && auth.teacher == null;
+    final teacher = auth.teacher;
+    final displayName = isAdmin ? 'Administrator' : (teacher?.name ?? 'Teacher');
+    final displayMeta = isAdmin
+        ? 'Administration · ADMIN'
+        : '${teacher?.department ?? ''} · ${teacher?.employeeId ?? ''}';
+    final displayCode = isAdmin ? 'ADM' : (teacher?.facultyCode ?? '');
     final bookings = provider.bookings.where((b) {
       if (b.status != 'confirmed') return false;
       if (_filterDate == null) return true;
@@ -64,11 +72,11 @@ class _PortalScreenState extends State<PortalScreen> {
       backgroundColor: AppColors.gray,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Teacher Portal'),
+        title: Text(isAdmin ? 'Admin Portal' : 'Teacher Portal'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const MainShell(initialIndex: 0))),
+              context, MaterialPageRoute(builder: (_) => const MainShell(initialIndex: 0))),
             child: const Text('Dashboard',
                 style: TextStyle(color: AppColors.purple, fontSize: 13)),
           ),
@@ -80,7 +88,9 @@ class _PortalScreenState extends State<PortalScreen> {
       ),
       body: RefreshIndicator(
         color: AppColors.purple,
-        onRefresh: () => provider.loadBookings(facultyCode: teacher.facultyCode),
+        onRefresh: () => provider.loadBookings(
+          facultyCode: isAdmin ? null : teacher?.facultyCode,
+        ),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
@@ -97,25 +107,25 @@ class _PortalScreenState extends State<PortalScreen> {
                 ),
                 child: Row(
                   children: [
-                    AvatarWidget(name: teacher.name, size: 52),
+                    AvatarWidget(name: displayName, size: 52),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(teacher.name,
+                          Text(displayName,
                               style: const TextStyle(
                                   fontSize: 17, fontWeight: FontWeight.w700,
                                   color: AppColors.purpleDark, letterSpacing: -0.3)),
                           const SizedBox(height: 2),
-                          Text('${teacher.department} · ${teacher.employeeId}',
+                          Text(displayMeta,
                               style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                             decoration: BoxDecoration(
                                 color: AppColors.purpleLight, borderRadius: BorderRadius.circular(20)),
-                            child: Text(teacher.facultyCode,
+                            child: Text(displayCode,
                                 style: const TextStyle(
                                     fontSize: 12, fontWeight: FontWeight.w600,
                                     color: AppColors.purple)),
@@ -138,6 +148,19 @@ class _PortalScreenState extends State<PortalScreen> {
                             context, MaterialPageRoute(builder: (_) => const BookRoomScreen())),
                         icon: const Icon(Icons.add_rounded, size: 18),
                         label: const Text('Book a Room'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.push(
+                            context, MaterialPageRoute(builder: (_) => const UploadScreen())),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.purple,
+                          side: const BorderSide(color: AppColors.purple),
+                        ),
+                        icon: const Icon(Icons.upload_file_rounded, size: 18),
+                        label: const Text('Upload Timetable'),
                       ),
                     ),
                   ],
@@ -292,7 +315,7 @@ class _PortalScreenState extends State<PortalScreen> {
                                     TextButton(
                                       onPressed: () async {
                                         final ok = await provider.cancelBooking(
-                                            b.id!, facultyCode: teacher.facultyCode);
+                                            b.id!, facultyCode: isAdmin ? null : teacher?.facultyCode);
                                         if (ok && mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             const SnackBar(content: Text('Booking cancelled'),

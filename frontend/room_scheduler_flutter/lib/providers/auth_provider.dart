@@ -4,11 +4,13 @@ import '../services/data_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   Teacher? _teacher;
+  bool _isAdminLoggedIn = false;
   bool _isLoading = false;
   String? _error;
 
   Teacher? get teacher => _teacher;
   bool get isLoggedIn => _teacher != null;
+  bool get isAdminLoggedIn => _isAdminLoggedIn;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -22,18 +24,27 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = false;
     if (result != null) {
       _teacher = result;
+      _isAdminLoggedIn = false;
       _error = null;
       notifyListeners();
       return true;
     } else {
-      _error = 'Employee ID not found. Try AP001, UK002, VJ003...';
+      _error = 'Employee ID not found. Try your faculty code (e.g., UK) or IDs like AP001, UK002.';
       notifyListeners();
       return false;
     }
   }
 
+  void loginAdmin() {
+    _teacher = null;
+    _isAdminLoggedIn = true;
+    _error = null;
+    notifyListeners();
+  }
+
   void logout() {
     _teacher = null;
+    _isAdminLoggedIn = false;
     _error = null;
     notifyListeners();
   }
