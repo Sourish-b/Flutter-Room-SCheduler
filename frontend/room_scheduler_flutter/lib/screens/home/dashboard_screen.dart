@@ -232,6 +232,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+                    child: Text(
+                      'Free: ${provider.freeCount}  •  Busy: ${provider.busyCount}  •  Soon: ${provider.soonCount}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 16),
 
                   // Filter chips
@@ -497,19 +508,18 @@ class _StatCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: _cardShadow(),
-            border: Border(
-              top: BorderSide(color: color, width: 3),
-              left: BorderSide(color: active ? color.withOpacity(0.35) : AppColors.border),
-              right: BorderSide(color: active ? color.withOpacity(0.35) : AppColors.border),
-              bottom: BorderSide(color: active ? color.withOpacity(0.35) : AppColors.border),
+            border: Border.all(
+              color: active ? color.withOpacity(0.45) : AppColors.border,
+              width: active ? 1.6 : 1,
             ),
           ),
-          child: Column(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
@@ -519,19 +529,32 @@ class _StatCard extends StatelessWidget {
                 ),
                 child: Icon(icon, color: color, size: 16),
               ),
-              const SizedBox(height: 8),
-              Text('$count',
-                  style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: color,
-                      height: 1)),
-              const SizedBox(height: 4),
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                      fontWeight: FontWeight.w600)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$count',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: color,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
