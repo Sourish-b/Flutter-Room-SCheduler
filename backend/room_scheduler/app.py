@@ -90,15 +90,28 @@ def init_db():
 def seed_data(c):
     # 1. Add your REAL Rooms here
     rooms = [
-        ("203","Lab",40,"Block A"), 
-        ("204","Classroom",60,"Block A"),
-        ("211","Classroom",60,"Block A"),
-        ("212","Lab",30,"Block A"),
-        ("216","Lab",35,"Block A"),
-        ("312","Lab",30,"Block B"),
-        ("314","Classroom",60,"Block B"),
-        ("315","Classroom",60,"Block B"),
-        ("101","Seminar Hall",100,"Block C"),
+        ("203","Unknown",60,"Unknown"),
+        ("204","Unknown",60,"Unknown"),
+        ("211","Unknown",60,"Unknown"),
+        ("212","Unknown",60,"Unknown"),
+        ("213","Unknown",60,"Unknown"),
+        ("214","Unknown",60,"Unknown"),
+        ("216","Unknown",60,"Unknown"),
+        ("217","Unknown",60,"Unknown"),
+        ("219","Unknown",60,"Unknown"),
+        ("303","Unknown",60,"Unknown"),
+        ("304","Unknown",60,"Unknown"),
+        ("311","Unknown",60,"Unknown"),
+        ("312","Unknown",60,"Unknown"),
+        ("313","Unknown",60,"Unknown"),
+        ("314","Unknown",60,"Unknown"),
+        ("317","Unknown",60,"Unknown"),
+        ("513","Unknown",60,"Unknown"),
+        ("BASEMENT LAB","Unknown",60,"Unknown"),
+        ("R1","Unknown",60,"Unknown"),
+        ("R2","Unknown",60,"Unknown"),
+        ("R3","Unknown",60,"Unknown"),
+        ("R4","Unknown",60,"Unknown"),
     ]
     for r in rooms:
         c.execute("INSERT OR IGNORE INTO rooms (room_number,room_type,capacity,building) VALUES (?,?,?,?)", r)
@@ -294,9 +307,9 @@ def room_schedule(room_number):
         key=lambda x: x["start_time"]
     )
 
-    # Build full hourly timeline 09:00–16:00
+    # Build full hourly timeline 08:00–18:00
     timeline = []
-    hours = [(f"{h:02d}:00", f"{h+1:02d}:00") for h in range(9, 16)]
+    hours = [(f"{h:02d}:00", f"{h+1:02d}:00") for h in range(8, 18)]
     for start, end in hours:
         found = next((e for e in all_entries
                       if time_to_mins(e["start_time"]) <= time_to_mins(start) < time_to_mins(e["end_time"])), None)

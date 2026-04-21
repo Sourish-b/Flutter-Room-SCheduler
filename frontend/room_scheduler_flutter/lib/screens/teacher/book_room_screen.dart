@@ -19,9 +19,10 @@ class BookRoomScreen extends StatefulWidget {
 
 class _BookRoomScreenState extends State<BookRoomScreen> {
   late String _selectedRoom;
-  final ValueNotifier<DateTime> _selectedDate = ValueNotifier<DateTime>(DateTime.now());
+  final ValueNotifier<DateTime> _selectedDate =
+      ValueNotifier<DateTime>(DateTime.now());
   String _startTime = '09:00';
-  String _endTime   = '10:00';
+  String _endTime = '10:00';
   List<RoomWithStatus> _availableRooms = const [];
   bool _roomsLoading = false;
   String _bookingType = 'booking';
@@ -30,7 +31,16 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
   bool _success = false;
   String? _result;
 
-  final _times = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'];
+  final _times = [
+    '09:00',
+    '10:00',
+    '11:00',
+    '12:00',
+    '13:00',
+    '14:00',
+    '15:00',
+    '16:00'
+  ];
   final _bookingTypes = [
     ('booking', 'Room Booking'),
     ('reschedule', 'Class Reschedule'),
@@ -41,13 +51,17 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedRoom = widget.preSelectedRoom ?? DataService.getRoomsList().first.roomNumber;
+    _selectedRoom =
+        widget.preSelectedRoom ?? DataService.getRoomsList().first.roomNumber;
     _endTime = _nextTime(_startTime);
     _loadAvailableRooms();
   }
 
   @override
-  void dispose() { _purposeCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _purposeCtrl.dispose();
+    super.dispose();
+  }
 
   String _nextTime(String start) {
     final idx = _times.indexOf(start);
@@ -66,7 +80,7 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
         date: selectedDate,
       );
       if (!mounted) return;
-      final visibleRooms = rooms.where((r) => r.status != RoomStatus.busy).toList()
+      final visibleRooms = rooms
         ..sort((a, b) => a.room.roomNumber.compareTo(b.room.roomNumber));
       setState(() {
         _availableRooms = visibleRooms;
@@ -100,28 +114,41 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
       return;
     }
     if (_purposeCtrl.text.trim().isEmpty) {
-      setState(() { _result = 'Please enter the purpose of booking'; _success = false; });
+      setState(() {
+        _result = 'Please enter the purpose of booking';
+        _success = false;
+      });
       return;
     }
     final auth = context.read<AuthProvider>();
     final isAdmin = auth.isAdminLoggedIn && auth.teacher == null;
-    setState(() { _loading = true; _result = null; });
+    setState(() {
+      _loading = true;
+      _result = null;
+    });
     final bookingDate = DateFormat('yyyy-MM-dd').format(_selectedDate.value);
     final dayStr = DateFormat('EEEE').format(_selectedDate.value);
     try {
-      final res = await context.read<RoomProvider>().book(
-        roomNumber: _selectedRoom,
-        day: dayStr,
-        startTime: _startTime,
-        endTime: _endTime,
-        bookedBy: isAdmin ? 'Administrator' : auth.teacher!.name,
-        facultyCode: isAdmin ? 'ADM' : auth.teacher!.facultyCode,
-        purpose: _purposeCtrl.text.trim(),
-        bookingType: _bookingType,
-        bookingDate: bookingDate,
-      ).timeout(const Duration(seconds: 4));
+      final res = await context
+          .read<RoomProvider>()
+          .book(
+            roomNumber: _selectedRoom,
+            day: dayStr,
+            startTime: _startTime,
+            endTime: _endTime,
+            bookedBy: isAdmin ? 'Administrator' : auth.teacher!.name,
+            facultyCode: isAdmin ? 'ADM' : auth.teacher!.facultyCode,
+            purpose: _purposeCtrl.text.trim(),
+            bookingType: _bookingType,
+            bookingDate: bookingDate,
+          )
+          .timeout(const Duration(seconds: 4));
       if (mounted) {
-        setState(() { _loading = false; _result = res.message; _success = res.success; });
+        setState(() {
+          _loading = false;
+          _result = res.message;
+          _success = res.success;
+        });
         if (res.success) {
           await Future.delayed(const Duration(seconds: 1));
           if (mounted) {
@@ -187,9 +214,11 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
                       children: [
                         Text(displayName,
                             style: const TextStyle(
-                                fontWeight: FontWeight.w600, color: AppColors.purpleDark)),
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.purpleDark)),
                         Text(displayDept,
-                            style: const TextStyle(fontSize: 12, color: AppColors.purple)),
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.purple)),
                       ],
                     ),
                   ),
@@ -206,19 +235,25 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
             // Form fields
             const _Label('Room'),
             DropdownButtonFormField<String>(
-              initialValue: _availableRooms.any((r) => r.room.roomNumber == _selectedRoom)
-                  ? _selectedRoom
-                  : null,
+              initialValue:
+                  _availableRooms.any((r) => r.room.roomNumber == _selectedRoom)
+                      ? _selectedRoom
+                      : null,
               decoration: const InputDecoration(),
               isExpanded: true,
               menuMaxHeight: 360,
-              hint: const Text('No available rooms for this slot'),
-              items: _availableRooms.map((r) => DropdownMenuItem(
-                value: r.room.roomNumber,
-                child: Text('${r.room.roomNumber} – ${r.room.roomType} (cap. ${r.room.capacity})',
-                    style: const TextStyle(fontSize: 14)),
-              )).toList(),
-              onChanged: (v) { if (v != null) setState(() => _selectedRoom = v); },
+              hint: const Text('No rooms available to load'),
+              items: _availableRooms
+                  .map((r) => DropdownMenuItem(
+                        value: r.room.roomNumber,
+                        child: Text(
+                            '${r.room.roomNumber} – ${r.room.roomType} (cap. ${r.room.capacity})${_roomStatusSuffix(r.status)}',
+                            style: const TextStyle(fontSize: 14)),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _selectedRoom = v);
+              },
             ),
             if (_roomsLoading)
               const Padding(
@@ -254,33 +289,47 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
 
             Row(
               children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const _Label('Start Time'),
-                  DropdownButtonFormField<String>(
-                    initialValue: _startTime,
-                    decoration: const InputDecoration(),
-                    items: _times.take(_times.length - 1).map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          _startTime = v;
-                          _endTime = _nextTime(v);
-                        });
-                        _loadAvailableRooms();
-                      }
-                    },
-                  ),
-                ])),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      const _Label('Start Time'),
+                      DropdownButtonFormField<String>(
+                        initialValue: _startTime,
+                        decoration: const InputDecoration(),
+                        items: _times
+                            .take(_times.length - 1)
+                            .map((t) =>
+                                DropdownMenuItem(value: t, child: Text(t)))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() {
+                              _startTime = v;
+                              _endTime = _nextTime(v);
+                            });
+                            _loadAvailableRooms();
+                          }
+                        },
+                      ),
+                    ])),
                 const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const _Label('End Time'),
-                  DropdownButtonFormField<String>(
-                    initialValue: _endTime,
-                    decoration: const InputDecoration(),
-                    items: _times.skip(1).map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                    onChanged: null,
-                  ),
-                ])),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      const _Label('End Time'),
+                      DropdownButtonFormField<String>(
+                        initialValue: _endTime,
+                        decoration: const InputDecoration(),
+                        items: _times
+                            .skip(1)
+                            .map((t) =>
+                                DropdownMenuItem(value: t, child: Text(t)))
+                            .toList(),
+                        onChanged: null,
+                      ),
+                    ])),
               ],
             ),
             const SizedBox(height: 14),
@@ -289,11 +338,15 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
             DropdownButtonFormField<String>(
               initialValue: _bookingType,
               decoration: const InputDecoration(),
-              items: _bookingTypes.map((t) => DropdownMenuItem(
-                value: t.$1,
-                child: Text(t.$2),
-              )).toList(),
-              onChanged: (v) { if (v != null) setState(() => _bookingType = v); },
+              items: _bookingTypes
+                  .map((t) => DropdownMenuItem(
+                        value: t.$1,
+                        child: Text(t.$2),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _bookingType = v);
+              },
             ),
             const SizedBox(height: 14),
 
@@ -310,8 +363,11 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
             ElevatedButton(
               onPressed: _loading ? null : _submit,
               child: _loading
-                  ? const SizedBox(height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
                   : const Text('Confirm Booking'),
             ),
             const SizedBox(height: 12),
@@ -321,7 +377,8 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
                 minimumSize: const Size(double.infinity, 48),
                 side: const BorderSide(color: AppColors.border),
                 foregroundColor: AppColors.textMuted,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               child: const Text('Cancel'),
             ),
@@ -332,16 +389,30 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
   }
 }
 
+String _roomStatusSuffix(RoomStatus status) {
+  switch (status) {
+    case RoomStatus.free:
+      return '';
+    case RoomStatus.soon:
+      return ' • Soon';
+    case RoomStatus.busy:
+      return ' • Busy';
+  }
+}
+
 class _Label extends StatelessWidget {
   final String text;
   const _Label(this.text);
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Text(text.toUpperCase(),
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-            color: AppColors.textMuted, letterSpacing: 0.06)),
-  );
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(text.toUpperCase(),
+            style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textMuted,
+                letterSpacing: 0.06)),
+      );
 }
 
 class _AlertBox extends StatelessWidget {
@@ -350,18 +421,21 @@ class _AlertBox extends StatelessWidget {
   const _AlertBox({required this.message, required this.success});
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    decoration: BoxDecoration(
-      color: success ? AppColors.greenLight : AppColors.redLight,
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Row(children: [
-      Icon(success ? Icons.check_circle_outline : Icons.error_outline,
-          size: 18, color: success ? AppColors.green : AppColors.red),
-      const SizedBox(width: 8),
-      Expanded(child: Text(message,
-          style: TextStyle(fontSize: 13, color: success ? AppColors.green : AppColors.red,
-              fontWeight: FontWeight.w500))),
-    ]),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: success ? AppColors.greenLight : AppColors.redLight,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(children: [
+          Icon(success ? Icons.check_circle_outline : Icons.error_outline,
+              size: 18, color: success ? AppColors.green : AppColors.red),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Text(message,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: success ? AppColors.green : AppColors.red,
+                      fontWeight: FontWeight.w500))),
+        ]),
+      );
 }

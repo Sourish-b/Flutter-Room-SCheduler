@@ -10,9 +10,28 @@ import '../models/teacher.dart';
 /// Swap `_useMock = false` and set [baseUrl] to connect a real Flask backend.
 class DataService {
   static const bool _useMock = false;
-  static const String baseUrl = 'http://127.0.0.1:5000'; // Localhost
+  static const String _defaultBaseUrl = 'https://app.bhaijiproducts.online';
+  static const String _configuredBaseUrl =
+      String.fromEnvironment('API_BASE_URL', defaultValue: _defaultBaseUrl);
+
+  static String get baseUrl => _sanitizeBaseUrl(_configuredBaseUrl);
 
   static final http.Client _httpClient = http.Client();
+
+  static String _sanitizeBaseUrl(String rawUrl) {
+    var url = rawUrl.trim();
+    if (url.isEmpty) return _defaultBaseUrl;
+
+    // Fix a common typo that causes DNS lookup failures.
+    url =
+        url.replaceAll('app.bhaijproducts.online', 'app.bhaijiproducts.online');
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://$url';
+    }
+
+    return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+  }
 
   static Uri _apiUri(String endpoint, [Map<String, String?>? queryParameters]) {
     final base = Uri.parse(baseUrl);
@@ -61,7 +80,8 @@ class DataService {
 
   // Helper to parse branch and section from combined string (e.g., "CSE-A" -> branch: CSE, section: A)
   static Map<String, String?> _parseSectionInfo(String? sectionStr) {
-    if (sectionStr == null || sectionStr.isEmpty) return {'branch': null, 'section': null};
+    if (sectionStr == null || sectionStr.isEmpty)
+      return {'branch': null, 'section': null};
     final parts = sectionStr.split('-');
     return {
       'branch': parts.isNotEmpty ? parts[0] : null,
@@ -139,38 +159,115 @@ class DataService {
 
   static final List<Room> _rooms = [
     const Room(
-        roomNumber: '203', roomType: 'Lab', capacity: 40, building: 'Block A'),
+        roomNumber: '203',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
     const Room(
         roomNumber: '204',
-        roomType: 'Classroom',
+        roomType: 'Unknown',
         capacity: 60,
-        building: 'Block A'),
+        building: 'Unknown'),
     const Room(
         roomNumber: '211',
-        roomType: 'Classroom',
+        roomType: 'Unknown',
         capacity: 60,
-        building: 'Block A'),
+        building: 'Unknown'),
     const Room(
-        roomNumber: '212', roomType: 'Lab', capacity: 30, building: 'Block A'),
+        roomNumber: '212',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
     const Room(
-        roomNumber: '216', roomType: 'Lab', capacity: 35, building: 'Block A'),
+        roomNumber: '213',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
     const Room(
-        roomNumber: '312', roomType: 'Lab', capacity: 30, building: 'Block B'),
+        roomNumber: '214',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: '216',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: '217',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: '219',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: '303',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: '304',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: '311',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: '312',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: '313',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
     const Room(
         roomNumber: '314',
-        roomType: 'Classroom',
+        roomType: 'Unknown',
         capacity: 60,
-        building: 'Block B'),
+        building: 'Unknown'),
     const Room(
-        roomNumber: '315',
-        roomType: 'Classroom',
+        roomNumber: '317',
+        roomType: 'Unknown',
         capacity: 60,
-        building: 'Block B'),
+        building: 'Unknown'),
     const Room(
-        roomNumber: '101',
-        roomType: 'Seminar Hall',
-        capacity: 100,
-        building: 'Block C'),
+        roomNumber: '513',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: 'BASEMENT LAB',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: 'R1',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: 'R2',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: 'R3',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
+    const Room(
+        roomNumber: 'R4',
+        roomType: 'Unknown',
+        capacity: 60,
+        building: 'Unknown'),
   ];
 
   // schedule: roomNumber -> list of {day, start, end, subject, faculty, section}
@@ -760,7 +857,8 @@ class DataService {
   // ─────────────────── PUBLIC API ───────────────────
 
   static Future<List<RoomWithStatus>> getRoomsWithStatus(
-      String day, String time, {String? date}) async {
+      String day, String time,
+      {String? date}) async {
     if (_useMock) {
       await Future.delayed(
           const Duration(milliseconds: 300)); // simulate network
@@ -786,11 +884,12 @@ class DataService {
   }
 
   static Future<List<ScheduleSlot>> getRoomSchedule(
-      String roomNumber, String day, {String? date}) async {
+      String roomNumber, String day,
+      {String? date}) async {
     if (_useMock) {
       await Future.delayed(const Duration(milliseconds: 200));
-      final hours = List.generate(7, (i) {
-        final h = 9 + i;
+      final hours = List.generate(10, (i) {
+        final h = 8 + i;
         return (
           '${h.toString().padLeft(2, '0')}:00',
           '${(h + 1).toString().padLeft(2, '0')}:00'
@@ -884,7 +983,8 @@ class DataService {
     }
 
     try {
-      final json = await _postJson(_apiUri('api/teachers/login'), {'employee_id': employeeId});
+      final json = await _postJson(
+          _apiUri('api/teachers/login'), {'employee_id': employeeId});
       if (json is Map<String, dynamic> && json['success'] == true) {
         return Teacher.fromJson(json['teacher'] as Map<String, dynamic>);
       }
@@ -907,7 +1007,8 @@ class DataService {
     return results.cast<Map<String, dynamic>>().map(Teacher.fromJson).toList();
   }
 
-  static Future<({bool success, String message, int affectedCount})> logTeacherAbsence({
+  static Future<({bool success, String message, int affectedCount})>
+      logTeacherAbsence({
     required String teacherId,
     required String startDate,
     required String endDate,
@@ -1095,7 +1196,8 @@ class DataService {
     } catch (e) {
       return (
         success: false,
-        message: 'Unable to reset schedule. Make sure backend is running on port 5000.',
+        message:
+            'Unable to reset schedule. Make sure backend is running on port 5000.',
       );
     }
   }
@@ -1107,12 +1209,16 @@ class DataService {
   }) async {
     if (_useMock) {
       await Future.delayed(const Duration(milliseconds: 600));
-      return (success: true, message: 'PDF processed successfully. Timetable updated.');
+      return (
+        success: true,
+        message: 'PDF processed successfully. Timetable updated.'
+      );
     }
 
     final uri = _apiUri('api/timetable/upload');
     final request = http.MultipartRequest('POST', uri)
-      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename))
+      ..files
+          .add(http.MultipartFile.fromBytes('file', bytes, filename: filename))
       ..fields['session'] = session;
     final response = await request.send();
     final body = await response.stream.bytesToString();
