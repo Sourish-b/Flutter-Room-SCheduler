@@ -170,6 +170,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
 
+                  if (provider.error != null) ...[
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.redLight,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFF7C9C9)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.wifi_off_rounded, color: AppColors.red, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                provider.error!,
+                                style: const TextStyle(fontSize: 12, color: AppColors.red),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => provider.loadRooms(),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.red,
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                minimumSize: const Size(48, 32),
+                              ),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
                   // Stats
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
