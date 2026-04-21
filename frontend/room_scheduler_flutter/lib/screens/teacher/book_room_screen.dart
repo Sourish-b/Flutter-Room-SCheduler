@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/room_provider.dart';
+import '../../models/room.dart';
 import '../../services/data_service.dart';
 import '../../theme.dart';
 import '../../widgets/avatar_widget.dart';
@@ -21,6 +22,8 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
   final ValueNotifier<DateTime> _selectedDate = ValueNotifier<DateTime>(DateTime.now());
   String _startTime = '09:00';
   String _endTime   = '10:00';
+  List<RoomWithStatus> _availableRooms = const [];
+  bool _roomsLoading = false;
   String _bookingType = 'booking';
   final _purposeCtrl = TextEditingController();
   bool _loading = false;
@@ -40,6 +43,7 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
     super.initState();
     _selectedRoom = widget.preSelectedRoom ?? DataService.getRoomsList().first.roomNumber;
     _endTime = _nextTime(_startTime);
+    _loadAvailableRooms();
   }
 
   @override
@@ -51,7 +55,50 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
     return _times[idx + 1];
   }
 
+  Future<void> _loadAvailableRooms() async {
+    setState(() => _roomsLoading = true);
+    try {
+      final selectedDate = DateFormat('yyyy-MM-dd').format(_selectedDate.value);
+      final selectedDay = DateFormat('EEEE').format(_selectedDate.value);
+      final rooms = await DataService.getRoomsWithStatus(
+        selectedDay,
+        _startTime,
+        date: selectedDate,
+      );
+      if (!mounted) return;
+      final visibleRooms = rooms.where((r) => r.status != RoomStatus.busy).toList()
+        ..sort((a, b) => a.room.roomNumber.compareTo(b.room.roomNumber));
+      setState(() {
+        _availableRooms = visibleRooms;
+        if (_availableRooms.isNotEmpty &&
+            !_availableRooms.any((r) => r.room.roomNumber == _selectedRoom)) {
+          _selectedRoom = _availableRooms.first.room.roomNumber;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      // Fallback to local list if backend request fails.
+      final fallback = DataService.getRoomsList()
+          .map((r) => RoomWithStatus(room: r, status: RoomStatus.free))
+          .toList();
+      setState(() {
+        _availableRooms = fallback;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _roomsLoading = false);
+      }
+    }
+  }
+
   Future<void> _submit() async {
+    if (_availableRooms.isEmpty) {
+      setState(() {
+        _result = 'No available rooms for the selected date and time.';
+        _success = false;
+      });
+      return;
+    }
     if (_purposeCtrl.text.trim().isEmpty) {
       setState(() { _result = 'Please enter the purpose of booking'; _success = false; });
       return;
@@ -104,7 +151,6 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final rooms = DataService.getRoomsList();
     final auth = context.watch<AuthProvider>();
     final isAdmin = auth.isAdminLoggedIn && auth.teacher == null;
     final displayName = isAdmin ? 'Administrator' : auth.teacher!.name;
@@ -160,15 +206,25 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
             // Form fields
             const _Label('Room'),
             DropdownButtonFormField<String>(
-              initialValue: _selectedRoom,
+              initialValue: _availableRooms.any((r) => r.room.roomNumber == _selectedRoom)
+                  ? _selectedRoom
+                  : null,
               decoration: const InputDecoration(),
-              items: rooms.map((r) => DropdownMenuItem(
-                value: r.roomNumber,
-                child: Text('${r.roomNumber} – ${r.roomType} (cap. ${r.capacity})',
+              isExpanded: true,
+              menuMaxHeight: 360,
+              hint: const Text('No available rooms for this slot'),
+              items: _availableRooms.map((r) => DropdownMenuItem(
+                value: r.room.roomNumber,
+                child: Text('${r.room.roomNumber} – ${r.room.roomType} (cap. ${r.room.capacity})',
                     style: const TextStyle(fontSize: 14)),
               )).toList(),
               onChanged: (v) { if (v != null) setState(() => _selectedRoom = v); },
             ),
+            if (_roomsLoading)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
             const SizedBox(height: 14),
 
             const _Label('Date'),
@@ -189,6 +245,7 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
                   );
                   if (picked != null) {
                     _selectedDate.value = picked;
+                    _loadAvailableRooms();
                   }
                 },
               ),
@@ -209,6 +266,7 @@ class _BookRoomScreenState extends State<BookRoomScreen> {
                           _startTime = v;
                           _endTime = _nextTime(v);
                         });
+                        _loadAvailableRooms();
                       }
                     },
                   ),

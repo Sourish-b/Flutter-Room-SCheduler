@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import sqlite3, os, json, tempfile
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import pdfplumber, re
 
 app = Flask(__name__, static_folder="static")
@@ -65,6 +65,21 @@ def init_db():
             status TEXT DEFAULT 'confirmed',
             FOREIGN KEY (original_entry) REFERENCES timetable_entries(id)
         );
+
+        CREATE TABLE IF NOT EXISTS teacher_absence_slots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            teacher_id INTEGER NOT NULL,
+            absence_date TEXT NOT NULL,
+            day TEXT NOT NULL,
+            start_time TEXT NOT NULL,
+            end_time TEXT NOT NULL,
+            room_number TEXT NOT NULL,
+            timetable_entry_id INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(teacher_id, absence_date, room_number, start_time, end_time, timetable_entry_id),
+            FOREIGN KEY (teacher_id) REFERENCES teachers(id),
+            FOREIGN KEY (timetable_entry_id) REFERENCES timetable_entries(id)
+        );
         """)
         
         # Check if we need to seed
@@ -108,13 +123,76 @@ def time_to_mins(t):
     h, m = map(int, t.split(":"))
     return h * 60 + m
 
-def get_room_status(room_number, day, current_time):
+def overlaps_time_window(start_a, end_a, start_b, end_b):
+    return time_to_mins(start_a) < time_to_mins(end_b) and time_to_mins(end_a) > time_to_mins(start_b)
+
+def parse_iso_date(value):
+    return datetime.strptime(value, "%Y-%m-%d").date()
+
+def date_range(start_date, end_date):
+    cursor = start_date
+    while cursor <= end_date:
+        yield cursor
+        cursor += timedelta(days=1)
+
+def resolve_teacher(conn, teacher_id):
+    raw = str(teacher_id).strip()
+    if not raw:
+        return None
+    if raw.isdigit():
+        return conn.execute("SELECT * FROM teachers WHERE id=?", (int(raw),)).fetchone()
+    normalized = raw.upper()
+    compact = re.sub(r"[^A-Z]", "", normalized)
+    return conn.execute(
+        """
+        SELECT * FROM teachers
+        WHERE UPPER(employee_id)=?
+           OR UPPER(faculty_code)=?
+           OR UPPER(employee_id)=?
+           OR UPPER(faculty_code)=?
+        LIMIT 1
+        """,
+        (normalized, normalized, compact, compact),
+    ).fetchone()
+
+def get_absence_slots(conn, room_number, day, selected_date):
+    if not selected_date:
+        return []
+    return conn.execute(
+        """
+        SELECT timetable_entry_id, start_time, end_time
+        FROM teacher_absence_slots
+        WHERE room_number=? AND day=? AND absence_date=?
+        """,
+        (room_number, day, selected_date),
+    ).fetchall()
+
+def filter_absent_entries(entries, absent_slots):
+    if not absent_slots:
+        return entries
+    filtered = []
+    for entry in entries:
+        blocked = False
+        for slot in absent_slots:
+            if slot["timetable_entry_id"] and entry["id"] == slot["timetable_entry_id"]:
+                blocked = True
+                break
+            if overlaps_time_window(entry["start_time"], entry["end_time"], slot["start_time"], slot["end_time"]):
+                blocked = True
+                break
+        if not blocked:
+            filtered.append(entry)
+    return filtered
+
+def get_room_status(room_number, day, current_time, selected_date=None):
     cur = time_to_mins(current_time)
     with get_db() as c:
         entries = c.execute("""
-            SELECT start_time, end_time, subject, faculty_name, year, branch, section
+            SELECT id, start_time, end_time, subject, faculty_name, year, branch, section
             FROM timetable_entries WHERE room_number=? AND day=?
         """, (room_number, day)).fetchall()
+        absent_slots = get_absence_slots(c, room_number, day, selected_date)
+        entries = filter_absent_entries(entries, absent_slots)
         bookings = c.execute("""
             SELECT start_time, end_time, purpose, booked_by, '' as year, '' as branch
             FROM bookings WHERE room_number=? AND day=? AND status='confirmed'
@@ -155,7 +233,14 @@ def get_rooms():
 @app.route("/api/rooms/status", methods=["GET"])
 def rooms_status():
     now = datetime.now()
-    day = request.args.get("day", now.strftime("%A"))
+    selected_date = request.args.get("date")
+    if selected_date:
+        try:
+            day = parse_iso_date(selected_date).strftime("%A")
+        except ValueError:
+            return jsonify({"success": False, "message": "date must be in YYYY-MM-DD format"}), 400
+    else:
+        day = request.args.get("day", now.strftime("%A"))
     time_str = request.args.get("time", now.strftime("%H:%M"))
 
     with get_db() as c:
@@ -163,7 +248,7 @@ def rooms_status():
 
     result = []
     for room in rooms:
-        status, info = get_room_status(room["room_number"], day, time_str)
+        status, info = get_room_status(room["room_number"], day, time_str, selected_date=selected_date)
         result.append({**dict(room), "status": status, "current_class": info})
 
     free = sum(1 for r in result if r["status"] == "free")
@@ -176,13 +261,22 @@ def rooms_status():
 @app.route("/api/rooms/<room_number>/schedule", methods=["GET"])
 def room_schedule(room_number):
     now = datetime.now()
-    day = request.args.get("day", now.strftime("%A"))
+    selected_date = request.args.get("date")
+    if selected_date:
+        try:
+            day = parse_iso_date(selected_date).strftime("%A")
+        except ValueError:
+            return jsonify({"success": False, "message": "date must be in YYYY-MM-DD format"}), 400
+    else:
+        day = request.args.get("day", now.strftime("%A"))
     with get_db() as c:
         entries = c.execute("""
-            SELECT start_time, end_time, subject, faculty_name, year, branch, section
+            SELECT id, start_time, end_time, subject, faculty_name, year, branch, section
             FROM timetable_entries WHERE room_number=? AND day=?
             ORDER BY start_time
         """, (room_number, day)).fetchall()
+        absent_slots = get_absence_slots(c, room_number, day, selected_date)
+        entries = filter_absent_entries(entries, absent_slots)
         bookings = c.execute("""
             SELECT start_time, end_time, purpose as subject, booked_by as faculty_name, '' as year, '' as branch, 'Booking' as section
             FROM bookings WHERE room_number=? AND day=? AND status='confirmed'
@@ -242,6 +336,100 @@ def get_teachers():
     with get_db() as c:
         rows = c.execute("SELECT * FROM teachers ORDER BY name").fetchall()
     return jsonify([dict(r) for r in rows])
+
+@app.route("/api/teachers/log-absence", methods=["POST"])
+def log_teacher_absence():
+    data = request.json or {}
+    teacher_id = data.get("teacher_id")
+    start_date_raw = str(data.get("start_date", "")).strip()
+    end_date_raw = str(data.get("end_date", "")).strip()
+    end_time = str(data.get("end_time") or "23:59").strip()
+
+    if teacher_id is None or not start_date_raw or not end_date_raw:
+        return jsonify({"success": False, "message": "teacher_id, start_date and end_date are required"}), 400
+
+    try:
+        start_date = parse_iso_date(start_date_raw)
+        end_date = parse_iso_date(end_date_raw)
+    except ValueError:
+        return jsonify({"success": False, "message": "start_date and end_date must be in YYYY-MM-DD format"}), 400
+
+    if end_date < start_date:
+        return jsonify({"success": False, "message": "end_date cannot be earlier than start_date"}), 400
+
+    if not re.fullmatch(r"\d{2}:\d{2}", end_time):
+        return jsonify({"success": False, "message": "end_time must be in HH:MM format"}), 400
+
+    try:
+        _ = time_to_mins(end_time)
+    except Exception:
+        return jsonify({"success": False, "message": "Invalid end_time"}), 400
+
+    affected_slots = []
+    inserted = 0
+
+    with get_db() as c:
+        teacher = resolve_teacher(c, teacher_id)
+        if not teacher:
+            return jsonify({"success": False, "message": "Teacher not found"}), 404
+
+        for current in date_range(start_date, end_date):
+            day_name = current.strftime("%A")
+            day_end_time = end_time if current == end_date else "23:59"
+
+            classes = c.execute(
+                """
+                SELECT id, room_number, start_time, end_time, subject, faculty_code, faculty_name
+                FROM timetable_entries
+                WHERE day=? AND faculty_code=? AND start_time < ?
+                ORDER BY start_time
+                """,
+                (day_name, teacher["faculty_code"], day_end_time),
+            ).fetchall()
+
+            for cls in classes:
+                cursor = c.execute(
+                    """
+                    INSERT OR IGNORE INTO teacher_absence_slots
+                    (teacher_id, absence_date, day, start_time, end_time, room_number, timetable_entry_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        teacher["id"],
+                        current.isoformat(),
+                        day_name,
+                        cls["start_time"],
+                        cls["end_time"],
+                        cls["room_number"],
+                        cls["id"],
+                    ),
+                )
+                inserted += cursor.rowcount
+                affected_slots.append({
+                    "date": current.isoformat(),
+                    "day": day_name,
+                    "room_number": cls["room_number"],
+                    "start_time": cls["start_time"],
+                    "end_time": cls["end_time"],
+                    "subject": cls["subject"],
+                })
+
+    return jsonify({
+        "success": True,
+        "message": "Absence logged successfully",
+        "teacher": {
+            "id": teacher["id"],
+            "employee_id": teacher["employee_id"],
+            "faculty_code": teacher["faculty_code"],
+            "name": teacher["name"],
+        },
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "end_time": end_time,
+        "affected_slots": affected_slots,
+        "affected_count": len(affected_slots),
+        "inserted_count": inserted,
+    })
 
 # --- Bookings ---
 @app.route("/api/bookings", methods=["POST"])

@@ -150,7 +150,12 @@ class RoomProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      _currentSchedule = await DataService.getRoomSchedule(roomNumber, _selectedDay);
+      final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      _currentSchedule = await DataService.getRoomSchedule(
+        roomNumber,
+        _selectedDay,
+        date: dateStr,
+      );
     } catch (e) {
       _error = 'Failed to load schedule';
     }

@@ -187,6 +187,10 @@ class _UploadScreenState extends State<UploadScreen> {
       backgroundColor: AppColors.gray,
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text('Upload Timetable'),
         actions: [
           TextButton.icon(

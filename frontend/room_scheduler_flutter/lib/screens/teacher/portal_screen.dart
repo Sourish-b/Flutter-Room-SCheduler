@@ -6,6 +6,7 @@ import '../../providers/room_provider.dart';
 import '../../theme.dart';
 import '../../widgets/avatar_widget.dart';
 import 'book_room_screen.dart';
+import 'log_absence_screen.dart';
 import '../upload/upload_screen.dart';
 import '../../main.dart';
 
@@ -145,28 +146,54 @@ class _PortalScreenState extends State<PortalScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => Navigator.push(
-                            context, MaterialPageRoute(builder: (_) => const BookRoomScreen())),
+                          context,
+                          MaterialPageRoute(builder: (_) => const BookRoomScreen()),
+                        ),
                         icon: const Icon(Icons.add_rounded, size: 18),
                         label: const Text('Book a Room'),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => Navigator.push(
-                            context, MaterialPageRoute(builder: (_) => const UploadScreen())),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.purple,
-                          side: const BorderSide(color: AppColors.purple),
+                    if (isAdmin) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const UploadScreen()),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.purple,
+                            side: const BorderSide(color: AppColors.purple),
+                          ),
+                          icon: const Icon(Icons.upload_file_rounded, size: 18),
+                          label: const Text('Upload Timetable'),
                         ),
-                        icon: const Icon(Icons.upload_file_rounded, size: 18),
-                        label: const Text('Upload Timetable'),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LogAbsenceScreen(
+                                isAdmin: isAdmin,
+                                inferredTeacherId: teacher?.employeeId,
+                              ),
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.purple,
+                            side: const BorderSide(color: AppColors.purple),
+                          ),
+                          icon: const Icon(Icons.event_busy_rounded, size: 18),
+                          label: const Text('Log Absence'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               // Date filter
               Padding(
@@ -184,9 +211,15 @@ class _PortalScreenState extends State<PortalScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('DATE',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                                    color: AppColors.textMuted, letterSpacing: 0.06)),
+                            const Text(
+                              'DATE',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textMuted,
+                                letterSpacing: 0.06,
+                              ),
+                            ),
                             const SizedBox(height: 6),
                             GestureDetector(
                               onTap: () async {
@@ -214,9 +247,10 @@ class _PortalScreenState extends State<PortalScreen> {
                                       ? 'All dates'
                                       : DateFormat('yyyy-MM-dd').format(_filterDate!),
                                   style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textDark),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textDark,
+                                  ),
                                 ),
                               ),
                             ),
@@ -243,14 +277,7 @@ class _PortalScreenState extends State<PortalScreen> {
               ),
               const SizedBox(height: 20),
 
-              // My Bookings
-              const Padding(
-                padding: EdgeInsets.only(left: 20, bottom: 8),
-                child: Text('MY BOOKINGS',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                        color: AppColors.textMuted, letterSpacing: 0.08)),
-              ),
-
+              // Bookings list
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -265,11 +292,15 @@ class _PortalScreenState extends State<PortalScreen> {
                           children: [
                             Icon(Icons.calendar_today_rounded, color: AppColors.textHint, size: 36),
                             SizedBox(height: 12),
-                            Text('No bookings yet',
-                                style: TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w500)),
+                            Text(
+                              'No bookings yet',
+                              style: TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w500),
+                            ),
                             SizedBox(height: 4),
-                            Text('Browse rooms and book one!',
-                                style: TextStyle(fontSize: 13, color: AppColors.textHint)),
+                            Text(
+                              'Browse rooms and book one!',
+                              style: TextStyle(fontSize: 13, color: AppColors.textHint),
+                            ),
                           ],
                         ),
                       )
@@ -284,43 +315,57 @@ class _PortalScreenState extends State<PortalScreen> {
                                 child: Row(
                                   children: [
                                     Container(
-                                      width: 42, height: 42,
+                                      width: 42,
+                                      height: 42,
                                       decoration: BoxDecoration(
-                                          color: AppColors.purpleLight,
-                                          borderRadius: BorderRadius.circular(10)),
+                                        color: AppColors.purpleLight,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                       alignment: Alignment.center,
-                                      child: Text(b.roomNumber,
-                                          style: const TextStyle(
-                                              fontFamily: 'DM Mono',
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                              color: AppColors.purple)),
+                                      child: Text(
+                                        b.roomNumber,
+                                        style: const TextStyle(
+                                          fontFamily: 'DM Mono',
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.purple,
+                                        ),
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(b.purpose ?? 'Booking',
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.w500, fontSize: 14,
-                                                  color: AppColors.purpleDark)),
+                                          Text(
+                                            b.purpose ?? 'Booking',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 14,
+                                              color: AppColors.purpleDark,
+                                            ),
+                                          ),
                                           const SizedBox(height: 2),
-                                          Text('${b.bookingDate ?? b.day} · ${b.startTime}–${b.endTime}',
-                                              style: const TextStyle(
-                                                  fontSize: 12, color: AppColors.textMuted)),
+                                          Text(
+                                            '${b.bookingDate ?? b.day} · ${b.startTime}–${b.endTime}',
+                                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                          ),
                                         ],
                                       ),
                                     ),
                                     TextButton(
                                       onPressed: () async {
                                         final ok = await provider.cancelBooking(
-                                            b.id!, facultyCode: isAdmin ? null : teacher?.facultyCode);
-                                        if (ok && mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Booking cancelled'),
-                                                backgroundColor: AppColors.green));
-                                        }
+                                          b.id!,
+                                          facultyCode: isAdmin ? null : teacher?.facultyCode,
+                                        );
+                                        if (!mounted || !ok) return;
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Booking cancelled'),
+                                            backgroundColor: AppColors.green,
+                                          ),
+                                        );
                                       },
                                       style: TextButton.styleFrom(
                                         foregroundColor: AppColors.red,

@@ -907,6 +907,35 @@ class DataService {
     return results.cast<Map<String, dynamic>>().map(Teacher.fromJson).toList();
   }
 
+  static Future<({bool success, String message, int affectedCount})> logTeacherAbsence({
+    required String teacherId,
+    required String startDate,
+    required String endDate,
+    String? endTime,
+  }) async {
+    if (_useMock) {
+      await Future.delayed(const Duration(milliseconds: 250));
+      return (
+        success: true,
+        message: 'Absence logged successfully',
+        affectedCount: 0,
+      );
+    }
+
+    final payload = <String, dynamic>{
+      'teacher_id': teacherId,
+      'start_date': startDate,
+      'end_date': endDate,
+      if (endTime != null && endTime.trim().isNotEmpty) 'end_time': endTime,
+    };
+    final json = await _postJson(_apiUri('api/teachers/log-absence'), payload);
+    return (
+      success: json['success'] == true,
+      message: (json['message'] as String?) ?? 'Absence logged',
+      affectedCount: (json['affected_count'] as int?) ?? 0,
+    );
+  }
+
   static Future<List<Booking>> getBookings({String? facultyCode}) async {
     if (_useMock) {
       await Future.delayed(const Duration(milliseconds: 200));
